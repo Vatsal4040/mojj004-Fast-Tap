@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fast Tap</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    #screen {
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #message {
+      font-size: 1.8rem;
+      line-height: 1.4;
+      opacity: 0.95;
+      white-space: pre-line;
+    }
+
+    .title {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+
+    .desc {
+      font-size: 0.95rem;
+      opacity: 0.55;
+      margin-bottom: 16px;
+    }
+
+    .best {
+      font-size: 0.8rem;
+      opacity: 0.4;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="screen">
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const screen = document.getElementById("screen");
+    const message = document.getElementById("message");
+
+    let state = "idle";
+    let startTime = 0;
+    let timeoutId = null;
+
+    const BEST_KEY = "fast-tap-best";
+
+    renderStart();
+
+    screen.addEventListener("click", () => {
+      if (state === "idle") {
+        startWaiting();
+      } else if (state === "waiting") {
+        tooSoon();
+      } else if (state === "ready") {
+        recordTime();
+      } else if (state === "done") {
+        renderStart();
+      }
+    });
+
+    function getBest() {
+      return localStorage.getItem(BEST_KEY);
+    }
+
+    function setBest(time) {
+      localStorage.setItem(BEST_KEY, time);
+    }
+
+    function renderStart() {
+      state = "idle";
+      screen.style.background = "#000";
+
+      const best = getBest();
+
+      message.innerHTML = `
+        <div class="title">Fast Tap</div>
+        <div class="desc">Tap as soon as the screen turns green.</div>
+        ${best ? `<div class="best">Best: ${best} ms</div>` : ""}
+        Tap to start
+      `;
+    }
+
+    function startWaiting() {
+      state = "waiting";
+      message.textContent = "Wait for green…";
+      screen.style.background = "#000";
+
+      const delay = Math.random() * 3000 + 2000;
+
+      timeoutId = setTimeout(() => {
+        state = "ready";
+        startTime = performance.now();
+        screen.style.background = "#0a3";
+        message.textContent = "TAP!";
+      }, delay);
+    }
+
+    function tooSoon() {
+      clearTimeout(timeoutId);
+      state = "done";
+      screen.style.background = "#000";
+      message.textContent = "Too soon.\nTap to try again.";
+    }
+
+    function recordTime() {
+      const reaction = Math.round(performance.now() - startTime);
+      state = "done";
+      screen.style.background = "#000";
+
+      const best = getBest();
+      if (!best || reaction < best) {
+        setBest(reaction);
+      }
+
+      message.textContent =
+        `${reaction} ms\n` +
+        (best && reaction < best ? "New best!\n" : "") +
+        "Tap to retry";
+    }
+  </script>
+
+</body>
+</html>
